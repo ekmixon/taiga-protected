@@ -448,7 +448,7 @@ class TimestampSigner(Signer):
         # that one directly, otherwise we have a weird situation in which
         # we shouldn't have come except someone uses a time-based serializer
         # on non-timestamp data, so catch that.
-        if not sep in result:
+        if sep not in result:
             if sig_error:
                 raise sig_error
             raise BadTimeSignature('timestamp missing', payload=result)
@@ -475,9 +475,11 @@ class TimestampSigner(Signer):
             age = self.get_timestamp() - timestamp
             if age > max_age:
                 raise SignatureExpired(
-                    'Signature age %s > %s seconds' % (age, max_age),
+                    f'Signature age {age} > {max_age} seconds',
                     payload=value,
-                    date_signed=self.timestamp_to_datetime(timestamp))
+                    date_signed=self.timestamp_to_datetime(timestamp),
+                )
+
 
         if return_timestamp:
             return value, self.timestamp_to_datetime(timestamp)
@@ -661,11 +663,9 @@ class TimedSerializer(Serializer):
         forwarded to the signer's :meth:`~TimestampSigner.unsign` method.
         """
         base64d, timestamp = self.make_signer(salt) \
-            .unsign(s, max_age, return_timestamp=True)
+                .unsign(s, max_age, return_timestamp=True)
         payload = self.load_payload(base64d)
-        if return_timestamp:
-            return payload, timestamp
-        return payload
+        return (payload, timestamp) if return_timestamp else payload
 
     def loads_unsafe(self, s, max_age=None, salt=None):
         load_kwargs = {'max_age': max_age}
@@ -731,9 +731,7 @@ class JSONWebSignatureSerializer(Serializer):
             raise BadHeader('Header payload is not a JSON object',
                 header=header)
         payload = Serializer.load_payload(self, json_payload, serializer=serializer)
-        if return_header:
-            return payload, header
-        return payload
+        return (payload, header) if return_header else payload
 
     def dump_payload(self, header, obj):
         base64d_header = base64_encode(self.serializer.dumps(header, **self.serializer_kwargs))
@@ -779,9 +777,7 @@ class JSONWebSignatureSerializer(Serializer):
         if header.get('alg') != self.algorithm_name:
             raise BadHeader('Algorithm mismatch', header=header,
                             payload=payload)
-        if return_header:
-            return payload, header
-        return payload
+        return (payload, header) if return_header else payload
 
     def loads_unsafe(self, s, salt=None, return_header=False):
         kwargs = {'return_header': return_header}
@@ -825,8 +821,7 @@ class TimedJSONWebSignatureSerializer(JSONWebSignatureSerializer):
         if 'exp' not in header:
             raise BadSignature('Missing expiry date', payload=payload)
 
-        if not (isinstance(header['exp'], number_types)
-                and header['exp'] > 0):
+        if not isinstance(header['exp'], number_types) or header['exp'] <= 0:
             raise BadSignature('expiry date is not an IntDate',
                                payload=payload)
 
@@ -834,9 +829,7 @@ class TimedJSONWebSignatureSerializer(JSONWebSignatureSerializer):
             raise SignatureExpired('Signature expired', payload=payload,
                                    date_signed=self.get_issue_date(header))
 
-        if return_header:
-            return payload, header
-        return payload
+        return (payload, header) if return_header else payload
 
     def get_issue_date(self, header):
         rv = header.get('iat')

@@ -17,7 +17,7 @@ import server
 
 
 def not_valid_url(base):  # pragma: no cover
-    return "/%s" % base
+    return f"/{base}"
 
 
 def not_valid_url_strategy():
@@ -33,7 +33,7 @@ def sign(value):
     )
     signature = signer.sign(value)
     signature = signature.decode("utf-8")
-    return signature.replace(value + ":", "")
+    return signature.replace(f"{value}:", "")
 
 
 @given(not_valid_url_strategy())
@@ -45,7 +45,7 @@ def test_not_valid_url_raises_404(path):
 
 
 def valid_url(base, p1, p2, p3, p4, p5, basename, ext):  # pragma: no cover
-    return "/%s/%s/%s/%s/%s/%s/%s.%s" % (base, p1, p2, p3, p4, p5, basename, ext)
+    return f"/{base}/{p1}/{p2}/{p3}/{p4}/{p5}/{basename}.{ext}"
 
 
 hexchars = "1234567890abcdef"
@@ -100,7 +100,7 @@ def test_valid_url_with_valid_token(path):
     status = int(status[:3])
     assert status == 200
     assert "X-Accel-Redirect" in headers
-    assert "/_protected" + path == headers["X-Accel-Redirect"]
+    assert f"/_protected{path}" == headers["X-Accel-Redirect"]
 
 
 @given(st.none() | st.text(), valid_url_strategy())

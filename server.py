@@ -62,7 +62,7 @@ def token_is_valid(token, path):
     signer = itsdangerous.TimestampSigner(
         CONFIG.secret_key, sep=":", salt="taiga-protected"
     )
-    signature = "%s:%s" % (path, token)
+    signature = f"{path}:{token}"
 
     try:
         value, ts = signer.unsign(
@@ -102,7 +102,7 @@ def app(environ, start_response):
         if not token_is_valid(token, path):
             return Forbidden()(environ, start_response)
 
-    protected_path = "/_protected/" + path
+    protected_path = f"/_protected/{path}"
     data = b""
     status = "200 OK"
     response_headers = [
